@@ -1,0 +1,8 @@
+datasets/
+temp/
+raw/
+*.exe
+*.zip
+*.checkpoint
+*.pth
+__pycache__/
