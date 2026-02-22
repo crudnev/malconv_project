@@ -11,7 +11,7 @@ class MalConv(nn.Module):
         self.conv1 = nn.Conv1d(8, 128, kernel_size=window_size, stride=window_size, bias=True)
         self.conv2 = nn.Conv1d(8, 128, kernel_size=window_size, stride=window_size, bias=True)
         self.pooling = nn.AdaptiveMaxPool1d(1)
-        self.fc_1 = nn.Linear(128, 256)
+        self.fc_1 = nn.Linear(256, 256)
         self.fc_2 = nn.Linear(256, 2)
         self.sig = nn.Sigmoid()
 
