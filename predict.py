@@ -19,6 +19,9 @@ class MalConv(nn.Module):
         x = self.embed(x).transpose(1, 2)
         cnn_value = self.conv1(x) * torch.sigmoid(self.conv2(x))
         x = self.pooling(cnn_value).squeeze(-1)
+
+        x = x.view(x.size(0), -1)
+
         x = self.fc_1(x)
         x = self.fc_2(x)
         return self.sig(x)
