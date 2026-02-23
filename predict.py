@@ -38,7 +38,7 @@ def predict_file(model, file_path):
         tensor = torch.from_numpy(data).unsqueeze(0)
         with torch.no_grad():
             prediction = model(tensor)
-        return prediction[0,1].item()
+        return prediction[0,0].item()
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return 0.0
