@@ -8,8 +8,8 @@ class MalConv(nn.Module):
     def __init__(self, input_length=2000000, window_size=512):
         super(MalConv, self).__init__()
         self.embed = nn.Embedding(257, 8)
-        self.conv1 = nn.Conv1d(8, 128, kernel_size=window_size, stride=window_size, bias=True)
-        self.conv2 = nn.Conv1d(8, 128, kernel_size=window_size, stride=window_size, bias=True)
+        self.conv1 = nn.Conv1d(8, 256, kernel_size=window_size, stride=window_size, bias=True)
+        self.conv2 = nn.Conv1d(8, 256, kernel_size=window_size, stride=window_size, bias=True)
         self.pooling = nn.AdaptiveMaxPool1d(1)
         self.fc_1 = nn.Linear(256, 256)
         self.fc_2 = nn.Linear(256, 2)
