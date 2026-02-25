@@ -23,11 +23,11 @@ def predict_file(model, file_path, device):
                 output = model(tensor)
                 prediction = output[0] if isinstance(output, tuple) else output
                 # If still 2 elements, take index 0 (malware score)
-                if prediction.numel() > 1:
-                    prediction = prediction[0, 0]
+                probs = torch.softmax(prediction, dim=1)
+                score = probs[0, 1].item()  # index 1 = malware probability
 
         # Output is a single sigmoid score: 1.0 = malware, 0.0 = benign
-        return prediction.item()
+        return score
 
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
