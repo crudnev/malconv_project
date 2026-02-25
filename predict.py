@@ -20,7 +20,9 @@ def predict_file(model, file_path, device):
 
         tensor = torch.from_numpy(data).unsqueeze(0).to(device)
         with torch.no_grad():
-            prediction = model(tensor)
+            output = model(tensor)
+
+            prediction = output[0] if isinstance(output, tuple) else output
 
         # Output is a single sigmoid score: 1.0 = malware, 0.0 = benign
         return prediction.item()
