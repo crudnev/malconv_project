@@ -3,11 +3,9 @@ import numpy as np
 import os
 import sys
 
-# Step 1: Add the MalConv2 repo directory to path so we can import their class
-# Make sure you've cloned the repo: git clone https://github.com/FutureComputing4AI/MalConv2
-sys.path.insert(0, '/home/cyril/malconv-evasion-project/MalConv2')  # adjust path as needed
+sys.path.insert(0, '/home/cyril/malconv-evasion-project/MalConv2')
+from MalConvGCT_nocat import MalConvGCT
 
-from MalConvGCT_nocat import MalConvGCT  # use THEIR class, not a custom one
 
 def predict_file(model, file_path, device):
     limit = 2000000
@@ -20,23 +18,21 @@ def predict_file(model, file_path, device):
 
         tensor = torch.from_numpy(data).unsqueeze(0).to(device)
         with torch.no_grad():
-                output = model(tensor)
-                prediction = output[0] if isinstance(output, tuple) else output
-                # If still 2 elements, take index 0 (malware score)
-                probs = torch.softmax(prediction, dim=1)
-                score = probs[0, 1].item()  # index 1 = malware probability
+            output = model(tensor)
+            prediction = output[0] if isinstance(output, tuple) else output
+            probs = torch.softmax(prediction, dim=1)
+            score = probs[0, 1].item()
 
-        # Output is a single sigmoid score: 1.0 = malware, 0.0 = benign
         return score
 
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return -1.0
 
+
 if __name__ == "__main__":
     device = torch.device('cpu')
 
-    # Use THEIR exact architecture with the correct hyperparameters from the README
     model = MalConvGCT(channels=256, window_size=256, stride=64)
 
     checkpoint_path = '/home/cyril/malconv-evasion-project/models/pretrained/malconvGCT_nocat.checkpoint'
@@ -53,15 +49,31 @@ if __name__ == "__main__":
     model.eval()
 
     target_dir = '/home/cyril/malconv-evasion-project/datasets/benign/'
+    results_dir = '/home/cyril/malconv-evasion-project/results'
+    output_file = os.path.join(results_dir, 'benign_scores.txt')
 
-    if os.path.exists(target_dir):
-        print(f"🔍 Scanning: {target_dir}\n")
-        print(f"{'RESULT':<15} | {'FILENAME':<30} | {'SCORE'}")
-        print("-" * 60)
+    os.makedirs(results_dir, exist_ok=True)
 
-        for filename in os.listdir(target_dir):
-            file_path = os.path.join(target_dir, filename)
-            if os.path.isfile(file_path):
-                score = predict_file(model, file_path, device)
-                result = "BENIGN" if score < 0.5 else "FALSE POSITIVE"
-                print(f"{result:<15} | {filename[:30]:<30} | {score:.4f}")
+    if not os.path.exists(target_dir):
+        print(f"❌ Directory not found: {target_dir}")
+        exit()
+
+    print(f"🔍 Scanning: {target_dir}\n")
+
+    results = []
+    for filename in sorted(os.listdir(target_dir)):
+        file_path = os.path.join(target_dir, filename)
+        if os.path.isfile(file_path):
+            score = predict_file(model, file_path, device)
+            results.append((filename, score))
+            print(f"  {filename[:40]:<40} {score:.4f}")
+
+    with open(output_file, 'w') as f:
+        f.write("MalConv Scores - Benign Dataset\n")
+        f.write("=" * 50 + "\n")
+        f.write(f"{'FILENAME':<40} | {'SCORE'}\n")
+        f.write("-" * 50 + "\n")
+        for filename, score in results:
+            f.write(f"{filename[:40]:<40} | {score:.4f}\n")
+
+    print(f"\n✅ Results saved to {output_file}")
