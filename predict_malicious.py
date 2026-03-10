@@ -21,7 +21,7 @@ def predict_file(model, file_path, device):
             output = model(tensor)
             prediction = output[0] if isinstance(output, tuple) else output
             probs = torch.softmax(prediction, dim=1)
-            score = probs[0, 1].item()  # index 1 = malware probability
+            score = probs[0, 1].item()
 
         return score
 
@@ -49,29 +49,37 @@ if __name__ == "__main__":
     model.eval()
 
     target_dir = '/home/cyril/malconv-evasion-project/datasets/malware/extracted'
+    results_dir = '/home/cyril/malconv-evasion-project/results'
+    output_file = os.path.join(results_dir, 'top50malicious.txt')
 
-    if os.path.exists(target_dir):
-        print(f"🔍 Scanning malware directory: {target_dir}\n")
-        print(f"{'RESULT':<15} | {'FILENAME':<30} | {'SCORE'}")
-        print("-" * 60)
+    os.makedirs(results_dir, exist_ok=True)
 
-        total = 0
-        detected = 0
-
-        for filename in sorted(os.listdir(target_dir)):
-            file_path = os.path.join(target_dir, filename)
-            if os.path.isfile(file_path):
-                score = predict_file(model, file_path, device)
-                total += 1
-                if score >= 0.5:
-                    result = "DETECTED ✓"
-                    detected += 1
-                else:
-                    result = "MISSED ✗"
-                print(f"{result:<15} | {filename[:30]:<30} | {score:.4f}")
-
-        print("-" * 60)
-        if total > 0:
-            print(f"📊 Detected {detected}/{total} ({(detected/total)*100:.1f}% detection rate)")
-    else:
+    if not os.path.exists(target_dir):
         print(f"❌ Directory not found: {target_dir}")
+        exit()
+
+    print(f"🔍 Scanning malware directory: {target_dir}\n")
+
+    scores = []
+    for filename in sorted(os.listdir(target_dir)):
+        file_path = os.path.join(target_dir, filename)
+        if os.path.isfile(file_path):
+            score = predict_file(model, file_path, device)
+            print(f"  {filename[:40]:<40} {score:.4f}")
+            # Exclude perfect 1.0000 scores and errors (-1.0)
+            if score < 1.0 and score >= 0.0:
+                scores.append((filename, score))
+
+    # Sort by score descending, take top 50
+    scores.sort(key=lambda x: x[1], reverse=True)
+    top50 = scores[:50]
+
+    with open(output_file, 'w') as f:
+        f.write("Top 50 Malware Samples by MalConv Score (excluding 1.0000)\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"{'RANK':<6} | {'FILENAME':<40} | {'SCORE'}\n")
+        f.write("-" * 60 + "\n")
+        for rank, (filename, score) in enumerate(top50, start=1):
+            f.write(f"{rank:<6} | {filename[:40]:<40} | {score:.4f}\n")
+
+    print(f"\n✅ Top 50 results saved to {output_file}")
