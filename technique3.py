@@ -51,12 +51,13 @@ def predict_file(model, file_path, device):
 # ── header manipulation ────────────────────────────────────────────────
 def manipulate_pe_header(malware_path, output_path, rng):
     """
-    Modify safe PE header fields that Windows ignores at runtime:
+    Modify safe PE header fields that Windows ignores at runtime.
 
     DOS Header:
       - e_oemid, e_oeminfo       : reserved, always ignored
       - e_res  (4 x uint16)      : reserved array, always zero normally
       - e_res2 (10 x uint16)     : reserved array, always zero normally
+        NOTE: e_lfanew at offset 0x3C is protected and never modified
 
     COFF File Header:
       - TimeDateStamp            : compile time, not checked at runtime
@@ -88,12 +89,16 @@ def manipulate_pe_header(malware_path, output_path, rng):
     for i in range(4):
         struct.pack_into('<H', data, 0x28 + i * 2, rng.randint(0, 0xFFFF))
     # e_res2 at offset 0x34: 10 x uint16 (20 bytes)
+    # IMPORTANT: skip offset 0x3C (e_lfanew) — it points to the PE signature
+    # and must never be modified or the file will be corrupted
     for i in range(10):
-        struct.pack_into('<H', data, 0x34 + i * 2, rng.randint(0, 0xFFFF))
+        offset = 0x34 + i * 2
+        if offset == 0x3C:
+            continue
+        struct.pack_into('<H', data, offset, rng.randint(0, 0xFFFF))
 
     # ── COFF File Header fields ────────────────────────────────────────
-    # PE signature is at offset pe.DOS_HEADER.e_lfanew
-    # COFF header starts 4 bytes after (after "PE\0\0" signature)
+    # COFF header starts 4 bytes after the PE signature
     coff_offset = pe.DOS_HEADER.e_lfanew + 4
 
     # TimeDateStamp at COFF offset +4 (4 bytes)
@@ -166,8 +171,8 @@ if __name__ == "__main__":
     with open(out_file, 'w') as f:
         f.write("Technique 3: PE Header Manipulation\n")
         f.write(f"Random seed: {RANDOM_SEED}\n")
-        f.write("Fields modified: e_oemid, e_oeminfo, e_res, e_res2, TimeDateStamp,\n")
-        f.write("                 PointerToSymbolTable, NumberOfSymbols,\n")
+        f.write("Fields modified: e_oemid, e_oeminfo, e_res, e_res2 (e_lfanew protected),\n")
+        f.write("                 TimeDateStamp, PointerToSymbolTable, NumberOfSymbols,\n")
         f.write("                 MajorLinkerVersion, MinorLinkerVersion,\n")
         f.write("                 MajorImageVersion, MinorImageVersion, CheckSum\n")
         f.write("=" * 65 + "\n")
