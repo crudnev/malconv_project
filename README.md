@@ -28,3 +28,5 @@ malware samples.
 18. technique2.py - Extracts the overlay of anyburn_setup_x64.exe and appends it to 10 chosen malware samples.
 19. technique3.py - Modifies fields in the PE header of 10 chosen malware samples.
 20. technique4.py - Renames sections inside malware to ones commonly seen in legitimate software.
+21. To see the capabilities of malware using capa, navigate to a directory with the samples you want to test.
+22. Run "capa <file-name>"
